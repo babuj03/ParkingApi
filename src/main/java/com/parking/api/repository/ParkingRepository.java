@@ -85,7 +85,7 @@ public class ParkingRepository {
 
     private void initializeSampleData() {
         parkingLots.put(1, new ParkingLot(1, "The Gate Parking", "Glasgow", 100));
-         for(int i=1; i<=5; i++) {
+         for(int i=1; i<=100; i++) {
             parkingSpots.put(i, new ParkingSpot(i, 1, "A"+i, "available"));
         }
     }
