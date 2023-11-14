@@ -8,7 +8,7 @@ Assumption
   2. Parking fee 2$ per hour.
   3. Used hashmap of storing and retriving instead of DB.
   4. During checkout calculate and return the fee.
-
+  5. Used reentrantlock to checkInbySpot and checkInByReservation methods to control concurrency. but which will support single JVM only.
 
 Base URL: /api/parking
 
