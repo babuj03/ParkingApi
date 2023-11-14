@@ -1,9 +1,11 @@
 Parking API Documentation
-
+--------------------------
 Overview
+
 The Parking API provides endpoints to manage parking lots, parking spots, and reservation-related operations.
 
 Assumption
+
   1. Max parking slot is 100.
   2. Parking fee 2$ per hour.
   3. Used hashmap of storing and retriving instead of DB.
@@ -104,10 +106,12 @@ Endpoints
     curl -X POST -H "Content-Type: application/json" -d '{"spotId": 1, "reservationId": 2}' http://localhost:8080/api/parking/check-out
     
 Error Handling
+
  If an endpoint encounters an error, it will return an appropriate HTTP status code along with an error message in the response body.
 
 Notes
- Authentication and Authorization mechanisms are not in place.
+
+ Authentication and Authorization mechanisms are not developed.
 
 Swagger Documention :
 
