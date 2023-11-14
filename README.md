@@ -15,6 +15,7 @@ Assumption
 Base URL: /api/parking
 
 Endpoints
+
 1. Get All Parking Lots
       Request
         Method: GET
@@ -109,9 +110,18 @@ Error Handling
 
  If an endpoint encounters an error, it will return an appropriate HTTP status code along with an error message in the response body.
 
+ Run below command in command prompt to run all test.
+
+ mvn clean test
+
+Run below command in command prompt to run Car parking Application.
+
+ mvn spring-boot:run
+
 Notes
 
- Authentication and Authorization mechanisms are not developed.
+ Authentication and Authorization mechanisms are not included.
+ Ignored CVE vulnerability
 
 Swagger Documention :
 
