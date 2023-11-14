@@ -104,10 +104,10 @@ Endpoints
     curl -X POST -H "Content-Type: application/json" -d '{"spotId": 1, "reservationId": 2}' http://localhost:8080/api/parking/check-out
     
 Error Handling
-If an endpoint encounters an error, it will return an appropriate HTTP status code along with an error message in the response body.
+ If an endpoint encounters an error, it will return an appropriate HTTP status code along with an error message in the response body.
 
 Notes
-Ensure proper authentication and authorization mechanisms are not in place.
+ Authentication and Authorization mechanisms are not in place.
 
 Swagger Documention :
 
