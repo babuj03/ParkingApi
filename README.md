@@ -107,26 +107,30 @@ Endpoints
     curl -X POST -H "Content-Type: application/json" -d '{"spotId": 1, "reservationId": 2}' http://localhost:8080/api/parking/check-out
     
 Error Handling
+---------------
 
  If an endpoint encounters an error, it will return an appropriate HTTP status code along with an error message in the response body.
 
  Run below command in command prompt to run all test.
+ ---------------------------------------------------
 
  mvn clean test
 
 Run below command in command prompt to run Car parking Application.
+-------------------------------------------------------------------
 
  mvn spring-boot:run
 
-Notes
-
- Authentication and Authorization mechanisms are not included.
- Ignored CVE vulnerability
-
 Swagger Documention :
+---------------------
 
 After starting the springboot application, then open http://localhost:8080/swagger-ui/index.html and enter in the text box /v2/api-docs
 which will show you the api documentation.
 
 ![My Image](swagger.png)
 
+
+Notes
+-----
+ Authentication and Authorization mechanisms are not included.
+ Ignored CVE vulnerability
