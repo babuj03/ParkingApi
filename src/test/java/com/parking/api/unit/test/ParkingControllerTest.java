@@ -1,34 +1,42 @@
 package com.parking.api.unit.test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.parking.api.controller.ParkingController;
 import com.parking.api.model.*;
+import com.parking.api.repository.ParkingRepository;
 import com.parking.api.service.ParkingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
+import java.util.concurrent.locks.Lock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 class ParkingControllerTest {
 
+    private static final Logger logger = LoggerFactory.getLogger(ParkingControllerTest.class);
+
     @Mock
     private ParkingService parkingService;
 
+    @Mock
+    private ParkingRepository parkingRepository;
+
+    @Mock
+    private Lock lock;
+
     @InjectMocks
     private ParkingController parkingController;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
@@ -36,91 +44,168 @@ class ParkingControllerTest {
     }
 
     @Test
-    void getParkingLots() {
+    void testGetParkingLots() {
+        logger.info("Testing getParkingLots method");
         List<ParkingLot> parkingLots = new ArrayList<>();
         when(parkingService.getParkingLots()).thenReturn(parkingLots);
+
         List<ParkingLot> result = parkingController.getParkingLots();
+
         assertEquals(parkingLots, result);
+        logger.info("Test successful");
     }
 
     @Test
-    void getParkingLot_Exists() {
-        int lotId = 1;
-        ParkingLot parkingLot = new ParkingLot(lotId, "sample","Sample location",100);
-        when(parkingService.getParkingLot(lotId)).thenReturn(parkingLot);
-        ResponseEntity<?> response = parkingController.getParkingLot(lotId);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(parkingLot, response.getBody());
+    void testGetParkingLotNotFound() {
+        logger.info("Testing getParkingLotNotFound method");
+        int parkingLotId = 1;
+        when(parkingService.getParkingLot(parkingLotId)).thenReturn(null);
+
+        ResponseEntity<?> responseEntity = parkingController.getParkingLot(parkingLotId);
+
+        assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
+        assertEquals("Parking lot not found", responseEntity.getBody());
+        logger.info("Test successful");
     }
 
     @Test
-    void getParkingLot_NotExists() {
-        int lotId = 1;
-        when(parkingService.getParkingLot(lotId)).thenReturn(null);
-        ResponseEntity<?> response = parkingController.getParkingLot(lotId);
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("Parking lot not found", response.getBody());
+    void testGetParkingLotFound() {
+        logger.info("Testing getParkingLotFound method");
+        int parkingLotId = 1;
+        ParkingLot parkingLot = new ParkingLot();
+        when(parkingService.getParkingLot(parkingLotId)).thenReturn(parkingLot);
+
+        ResponseEntity<?> responseEntity = parkingController.getParkingLot(parkingLotId);
+
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals(parkingLot, responseEntity.getBody());
+        logger.info("Test successful");
     }
 
     @Test
-    void getParkingSpots() {
+    void testGetParkingSpots() {
+        logger.info("Testing getParkingSpots method");
         List<ParkingSpot> parkingSpots = new ArrayList<>();
         when(parkingService.getParkingSpots()).thenReturn(parkingSpots);
+
         List<ParkingSpot> result = parkingController.getParkingSpots();
+
         assertEquals(parkingSpots, result);
+        logger.info("Test successful");
     }
 
     @Test
-    void getParkingSpot_Exists() {
-        int spotId = 1;
-        ParkingSpot parkingSpot = new ParkingSpot(spotId, 1, "1A","available");
-        when(parkingService.getParkingSpot(spotId)).thenReturn(parkingSpot);
-        ResponseEntity<?> response = parkingController.getParkingSpot(spotId);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(parkingSpot, response.getBody());
+    void testGetParkingSpotNotFound() {
+        logger.info("Testing getParkingSpotNotFound method");
+        int parkingSpotId = 1;
+        when(parkingService.getParkingSpot(parkingSpotId)).thenReturn(null);
+
+        ResponseEntity<?> responseEntity = parkingController.getParkingSpot(parkingSpotId);
+
+        assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
+        assertEquals("Parking spot not found", responseEntity.getBody());
+        logger.info("Test successful");
     }
 
     @Test
-    void getParkingSpot_NotExists() {
-        int spotId = 1;
-        when(parkingService.getParkingSpot(spotId)).thenReturn(null);
-        ResponseEntity<?> response = parkingController.getParkingSpot(spotId);
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("Parking spot not found", response.getBody());
+    void testGetParkingSpotFound() {
+        logger.info("Testing getParkingSpotFound method");
+        int parkingSpotId = 1;
+        ParkingSpot parkingSpot = new ParkingSpot();
+        when(parkingService.getParkingSpot(parkingSpotId)).thenReturn(parkingSpot);
+
+        ResponseEntity<?> responseEntity = parkingController.getParkingSpot(parkingSpotId);
+
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals(parkingSpot, responseEntity.getBody());
+        logger.info("Test successful");
     }
 
     @Test
-    void reserveParkingSpot_Success() throws Exception {
-        ReservationRequest reservationRequest = new ReservationRequest(1);
-        String expectedResult = "Spot reserved successfully. Reservation ID: 1";
-        when(parkingService.reserveParkingSpot(reservationRequest)).thenReturn(expectedResult);
-        String requestBody = objectMapper.writeValueAsString(reservationRequest);
-        ResponseEntity<?> response = parkingController.reserveParkingSpot(reservationRequest);
-        assertTrue(Objects.requireNonNull(response.getBody()).toString().contains(expectedResult));
-        verify(parkingService, times(1)).reserveParkingSpot(reservationRequest);
+    void testGetAvailableParkingSpots() {
+        logger.info("Testing getAvailableParkingSpots method");
+        List<ParkingSpot> parkingSpots = new ArrayList<>();
+        when(parkingService.getAvailableParkingSpots()).thenReturn(parkingSpots);
+
+        List<ParkingSpot> result = parkingController.getAvailableParkingSpots();
+
+        assertEquals(parkingSpots, result);
+        logger.info("Test successful");
     }
 
     @Test
-    void checkInBySpotIdOrReservationID() throws Exception {
-        CheckInRequest checkInRequest = new CheckInRequest(1L, 1);
-        String expectedResult ="Check-in successful.";
-        when(parkingService.checkIn(checkInRequest)).thenReturn(expectedResult);
-        String requestBody = objectMapper.writeValueAsString(checkInRequest);
-        ResponseEntity<?> response = parkingController.checkInBySpotIdOrReservationID(checkInRequest);
-       // assertEquals(expectedResult, response.getBody());
-        assertTrue(Objects.requireNonNull(response.getBody()).toString().contains(expectedResult));
-        verify(parkingService, times(1)).checkIn(checkInRequest);
+    void testReserveParkingSpot() {
+        logger.info("Testing reserveParkingSpot method");
+        ReservationRequest request = new ReservationRequest();
+        when(parkingService.reserveParkingSpot(request)).thenReturn("Reservation successful");
+
+        ResponseEntity<?> responseEntity = parkingController.reserveParkingSpot(request);
+
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("Reservation successful", responseEntity.getBody());
+        logger.info("Test successful");
     }
 
     @Test
-    void checkOut() throws Exception {
-        CheckOutRequest checkOutRequest = new CheckOutRequest(1L, 1);
-        String expectedResult = "Check-out successful.";
-        
-        when(parkingService.checkOut(checkOutRequest)).thenReturn(expectedResult);
-        String requestBody = objectMapper.writeValueAsString(checkOutRequest);
-        ResponseEntity<?> response = parkingController.checkOut(checkOutRequest);
-        assertEquals(expectedResult, response.getBody());
-        verify(parkingService, times(1)).checkOut(checkOutRequest);
+    void testCheckInBySpotId() {
+        logger.info("Testing checkInBySpotId method");
+        CheckInRequest request = new CheckInRequest();
+        when(parkingService.checkInBySpotId(anyInt())).thenReturn("Check-in successful");
+
+        ResponseEntity<?> responseEntity = parkingController.checkInBySpotId(request);
+
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("Check-in successful", responseEntity.getBody());
+        logger.info("Test successful");
     }
+
+    @Test
+    void testCheckInByReservationID() {
+        logger.info("Testing checkInByReservationID method");
+        CheckInRequest request = new CheckInRequest();
+        when(parkingService.checkInByReservationID(anyLong())).thenReturn("Check-in successful");
+
+        ResponseEntity<?> responseEntity = parkingController.checkInByReservationId(request);
+
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("Check-in successful", responseEntity.getBody());
+        logger.info("Test successful");
+    }
+
+    @Test
+    void testCheckOut() {
+        logger.info("Testing checkOut method");
+        CheckOutRequest request = new CheckOutRequest();
+        when(parkingService.checkOut(request)).thenReturn("Check-out successful");
+
+        ResponseEntity<?> responseEntity = parkingController.checkOut(request);
+
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("Check-out successful", responseEntity.getBody());
+        logger.info("Test successful");
+    }
+
+    @Test
+    void testBulkCheckInBySpotIds_Success() {
+        List<CheckInRequest> checkInRequests = new ArrayList<>();
+        when(parkingService.getAvailableParkingSpots()).thenReturn(new ArrayList<>());
+        when(parkingService.checkInBySpotId(anyInt())).thenReturn("Check-in successful.");
+        ResponseEntity<?> result = parkingController.bulkCheckInBySpotIds(checkInRequests);
+        assertEquals(new ResponseEntity<>("Bulk check-in successful", HttpStatus.OK), result);
+    }
+
+    @Test
+    void testBulkCheckInBySpotIds_NotEnoughParking() {
+        List<CheckInRequest> checkInRequests = Arrays.asList(
+                new CheckInRequest(1),
+                new CheckInRequest(2),
+                new CheckInRequest(3)
+        );
+        when(parkingService.getAvailableParkingSpots()).thenReturn(Arrays.asList());
+        ResponseEntity<?> responseEntity = parkingController.bulkCheckInBySpotIds(checkInRequests);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode());
+        assertEquals("Not enough Parking, Bulk check-in failed. Available parking spots is 0", responseEntity.getBody());
+    }
+
+
 }

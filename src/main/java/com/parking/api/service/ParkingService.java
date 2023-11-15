@@ -1,14 +1,13 @@
 package com.parking.api.service;
 
-import com.parking.api.model.CheckInRequest;
-import com.parking.api.model.CheckOutRequest;
-import com.parking.api.model.ParkingLot;
-import com.parking.api.model.ParkingSpot;
-import com.parking.api.model.Reservation;
-import com.parking.api.model.ReservationRequest;
+import com.parking.api.model.*;
 import com.parking.api.repository.ParkingRepository;
+import com.parking.api.util.ParkingUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -17,71 +16,109 @@ import java.util.stream.Collectors;
 public class ParkingService {
 
     private final ParkingRepository parkingRepository;
-    ReentrantLock lock = new ReentrantLock();
+    private final ReentrantLock lock = new ReentrantLock();
+
+    private static final Logger logger = LoggerFactory.getLogger(ParkingService.class);
 
     public ParkingService(ParkingRepository parkingRepository) {
         this.parkingRepository = parkingRepository;
     }
 
     public List<ParkingLot> getParkingLots() {
+        logger.info("Getting all parking lots");
         return parkingRepository.getParkingLots();
     }
 
     public ParkingLot getParkingLot(int id) {
+        logger.info("Getting parking lot with ID: {}", id);
         return parkingRepository.getParkingLot(id);
     }
 
     public List<ParkingSpot> getParkingSpots() {
+        logger.info("Getting all parking spots");
         return parkingRepository.getParkingSpots();
     }
 
     public ParkingSpot getParkingSpot(int id) {
+        logger.info("Getting parking spot with ID: {}", id);
         return parkingRepository.getParkingSpot(id);
     }
 
-    //@Transactional
     public String reserveParkingSpot(ReservationRequest request) {
+        logger.info("Reserving parking spot with ID: {}", request.getSpotId());
         lock.lock();
-        ParkingSpot spot = parkingRepository.getParkingSpot(request.getSpotId());
-        if (canReserveSpot(spot)) {
-            Reservation reservation = createReservation(spot);
-            updateSpotAndReservation(spot, reservation);
+        try {
+            ParkingSpot spot = parkingRepository.getParkingSpot(request.getSpotId());
+            if (canReserveSpot(spot)) {
+                Reservation reservation = createReservation(spot);
+                updateSpotAndReservation(spot, reservation);
+                logger.info("Spot reserved successfully. Reservation ID: {}", reservation.getId());
+                return "Spot reserved successfully. Reservation ID: " + reservation.getId();
+            } else {
+                logger.error("Unable to reserve the spot, Try again later.");
+                throw new RuntimeException("Unable to reserve the spot, Try again later.");
+            }
+        } finally {
             lock.unlock();
-            return "Spot reserved successfully. Reservation ID: " + reservation.getId();
-        } else {
-            lock.unlock();
-            throw new RuntimeException("Unable to reserve the spot, Try again later.");
         }
     }
 
-    //@Transactional
-    public String checkIn(CheckInRequest request) {
+    public String checkInBySpotId(int spotId) {
+        logger.info("Checking in by spot ID: {}", spotId);
         lock.lock();
-        ParkingSpot spot = parkingRepository.getParkingSpot(request.getSpotId());
-        Reservation reservation = (request.getReservationId() > 0) ? parkingRepository.getReservation(request.getReservationId()) : null;
-        if (canCheckIn(reservation, spot)) {
-            updateSpotAndReservationOnCheckIn(spot, reservation);
+        try {
+            ParkingSpot spot = parkingRepository.getParkingSpot(spotId);
+            return validateAndUpdateSpotStatus(spot);
+        } finally {
             lock.unlock();
-            return"Check-in successful.";
+        }
+    }
+
+    private String validateAndUpdateSpotStatus(ParkingSpot spot) {
+        if (spot != null && spot.getStatus().equals("available")) {
+            spot.setCheckInTime(LocalDateTime.now());
+            spot.setStatus("occupied");
+            parkingRepository.saveOrUpdateParkingSpot(spot);
+            logger.info("Check-in successful.");
+            return "Check-in successful.";
         } else {
-            lock.unlock();
+            logger.error("Unable to check in, Try again later.");
             throw new RuntimeException("Unable to check in, Try again later.");
         }
     }
 
+    public String checkInByReservationID(Long reservationId) {
+        logger.info("Checking in by reservation ID: {}", reservationId);
+        lock.lock();
+        try {
+            Reservation reservation = parkingRepository.getReservation(reservationId);
+            ParkingSpot spot = parkingRepository.getParkingSpot(reservation.getSpotId());
+            return validateAndUpdateSpotStatus(spot);
+        } finally {
+            lock.unlock();
+        }
+    }
+
     public String checkOut(CheckOutRequest request) {
+        logger.info("Checking out by spot ID: {}", request.getSpotId());
         ParkingSpot spot = parkingRepository.getParkingSpot(request.getSpotId());
-        Reservation reservation = (request.getReservationId() > 0) ? parkingRepository.getReservation(request.getReservationId()) : null;
-        if (canCheckOut(reservation, spot)) {
-            updateSpotAndReservationOnCheckOut(spot, reservation);
-            return "Check-out successful.";
+       // Reservation reservation = (request.getReservationId() > 0) ? parkingRepository.getReservation(request.getReservationId()) : null;
+        if (spot != null && spot.getStatus().equals("occupied")) {
+            spot.setStatus("available");
+            spot.setCheckOutTime(LocalDateTime.now());
+            parkingRepository.saveOrUpdateParkingSpot(spot);
+            long hours = ParkingUtil.roundUpToNearestHour(spot.getCheckInTime(), spot.getCheckOutTime());
+            String message = "You have to pay amount $" + hours * ParkingUtil.FEE_PER_HOUR;
+            logger.info(message);
+            return message;
         } else {
+            logger.error("Unable to check out, Try again later.");
             throw new RuntimeException("Unable to check out, Try again later.");
         }
     }
 
     private boolean canReserveSpot(ParkingSpot spot) {
-        return spot != null && spot.getStatus().equals("available");
+        return spot != null && spot.getStatus().equalsIgnoreCase("available");
     }
 
     private Reservation createReservation(ParkingSpot spot) {
@@ -94,33 +131,11 @@ public class ParkingService {
         parkingRepository.saveOrUpdateReservation(reservation);
     }
 
-    private boolean canCheckIn(Reservation reservation, ParkingSpot spot) {
-        return (reservation != null && !reservation.isCheckedIn()) || (spot != null && spot.getStatus().equals("available"));
-    }
-
-    private void updateSpotAndReservationOnCheckIn(ParkingSpot spot, Reservation reservation) {
-        if (reservation != null) {
-            reservation.setCheckedIn(true);
-            parkingRepository.saveOrUpdateReservation(reservation);
-        }
-        spot.setStatus("occupied");
-        parkingRepository.saveOrUpdateParkingSpot(spot);
-    }
-
-    private boolean canCheckOut(Reservation reservation, ParkingSpot spot) {
-        return (reservation != null && reservation.isCheckedIn()) || (spot != null && spot.getStatus().equals("occupied"));
-    }
-
-    private void updateSpotAndReservationOnCheckOut(ParkingSpot spot, Reservation reservation) {
-        if (reservation != null) {
-            reservation.setCheckedIn(false);
-            parkingRepository.saveOrUpdateReservation(reservation);
-        }
-        spot.setStatus("available");
-        parkingRepository.saveOrUpdateParkingSpot(spot);
-    }
 
     public List<ParkingSpot> getAvailableParkingSpots() {
-        return parkingRepository.getParkingSpots().stream().filter(park->park.getStatus().equalsIgnoreCase("available")).collect(Collectors.toList());
+        logger.info("Getting available parking spots");
+        return parkingRepository.getParkingSpots().stream()
+                .filter(park -> park.getStatus().equalsIgnoreCase("available"))
+                .collect(Collectors.toList());
     }
 }

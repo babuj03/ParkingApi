@@ -47,7 +47,7 @@ class ParkingRepositoryTest {
     @Test
     void getParkingSpots() {
         List<ParkingSpot> result = parkingRepository.getParkingSpots();
-        assertEquals(5, result.size());
+        assertEquals(100, result.size());
         assertEquals("A1", result.get(0).getSpotNumber());
     }
 
@@ -59,7 +59,7 @@ class ParkingRepositoryTest {
 
     @Test
     void getParkingSpot_NotExists() {
-        ParkingSpot result = parkingRepository.getParkingSpot(6);
+        ParkingSpot result = parkingRepository.getParkingSpot(101);
         assertNull(result);
     }
 
@@ -87,7 +87,7 @@ class ParkingRepositoryTest {
 
     @Test
     void saveOrUpdateParkingSpot() {
-        ParkingSpot parkingSpot = new ParkingSpot(6, 1, "A6", "available");
+        ParkingSpot parkingSpot = new ParkingSpot(6, 1, "A6", "available",null,null);
         parkingRepository.saveOrUpdateParkingSpot(parkingSpot);
         ParkingSpot result = parkingRepository.getParkingSpot(6);
         assertEquals(parkingSpot, result);
@@ -104,7 +104,7 @@ class ParkingRepositoryTest {
 
     @Test
     void checkInSpot() {
-        ParkingSpot parkingSpot = new ParkingSpot(6, 1, "A6", "available");
+        ParkingSpot parkingSpot = new ParkingSpot(6, 1, "A6", "available",null,null);
         parkingRepository.saveOrUpdateParkingSpot(parkingSpot);
         parkingRepository.checkInSpot(6);
         ParkingSpot result = parkingRepository.getParkingSpot(6);

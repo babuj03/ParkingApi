@@ -60,13 +60,40 @@ public class ParkingController {
         return new ResponseEntity<String>(parkingService.reserveParkingSpot(request),HttpStatus.OK);
     }
 
-    @PostMapping("/check-in")
-    public ResponseEntity<?> checkInBySpotIdOrReservationID(@RequestBody CheckInRequest request) {
-       return new ResponseEntity<String>(parkingService.checkIn(request), HttpStatus.OK);
+    @PostMapping("/check-in-by-spot-id")
+    public ResponseEntity<?> checkInBySpotId(@RequestBody CheckInRequest request) {
+       return new ResponseEntity<String>(parkingService.checkInBySpotId(Long.valueOf(request.getId()).intValue()), HttpStatus.OK);
+    }
+
+
+    @PostMapping("/check-in-by-reservation-id")
+    public ResponseEntity<?> checkInByReservationId(@RequestBody CheckInRequest request) {
+        return new ResponseEntity<String>(parkingService.checkInByReservationID(request.getId()), HttpStatus.OK);
     }
 
     @PostMapping("/check-out")
     public ResponseEntity<?> checkOut(@RequestBody CheckOutRequest request) {
        return new ResponseEntity<String>(parkingService.checkOut(request),HttpStatus.OK);
+    }
+
+    @PostMapping("/bulk-check-in")
+    public ResponseEntity<?> bulkCheckInBySpotIds(@RequestBody List<CheckInRequest> checkInRequests) {
+        try {
+            // Perform bulk check-in operations
+            int availableSpots = parkingService.getAvailableParkingSpots().size();
+            if(availableSpots<checkInRequests.size()) {
+                throw new RuntimeException("Not enough Parking, Bulk check-in failed. Available parking spots is "+availableSpots);
+            }
+            for (CheckInRequest request : checkInRequests) {
+                ResponseEntity<?> response = checkInBySpotId(request);
+                if (response.getStatusCode() != HttpStatus.OK) {
+                    // Rollback if any check-in fails
+                    throw new RuntimeException("Bulk check-in failed. Rolling back.");
+                }
+            }
+            return new ResponseEntity<>("Bulk check-in successful", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
