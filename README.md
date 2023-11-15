@@ -128,3 +128,5 @@ Swagger Documention :
 After starting the springboot application, then open http://localhost:8080/swagger-ui/index.html and enter in the text box /v2/api-docs
 which will show you the api documentation.
 
+![My Image](swagger.png)
+
